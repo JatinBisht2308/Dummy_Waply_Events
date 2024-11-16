@@ -4,6 +4,7 @@
 import React, { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Button } from "@nextui-org/react"; // Import Next UI Button
 import logo from "../../../public/assets/logo-waply.png"; // Replace with your logo path
 
 interface PinPageProps {
@@ -49,18 +50,18 @@ const PinPage: React.FC<PinPageProps> = ({ params: paramsPromise }) => {
     const pinCode = pin.join(""); // Convert array to string for submission
 
     // Send login request to the backend
-    const res = await fetch('/api/v1/auth/login', {
-      method: 'POST',
-      credentials: 'include', // Include cookies
+    const res = await fetch("/api/v1/auth/login", {
+      method: "POST",
+      credentials: "include", // Include cookies
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ userId, pin: pinCode }),
     });
 
     if (res.ok) {
       // Redirect to the dashboard or another page on successful login
-      router.push('/dashboard');
+      router.push("/dashboard");
     } else {
       // Handle error, e.g., display error message
       console.error("Login failed");
@@ -69,9 +70,18 @@ const PinPage: React.FC<PinPageProps> = ({ params: paramsPromise }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-lg text-center max-w-sm">
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col items-center justify-center bg-white p-8 rounded-lg shadow-lg text-center max-w-sm w-full h-screen md:h-auto md:w-auto md:max-w-sm"
+      >
         {/* Logo */}
-        <Image src={logo} alt="Logo" width={50} height={50} className="mx-auto mb-4" />
+        <Image
+          src={logo}
+          alt="Logo"
+          width={50}
+          height={50}
+          className="mx-auto mb-4"
+        />
 
         {/* Greeting */}
         <h2 className="text-lg font-semibold">Hi, Rwan Adams</h2>
@@ -94,31 +104,23 @@ const PinPage: React.FC<PinPageProps> = ({ params: paramsPromise }) => {
         {/* Numeric Keypad */}
         <div className="grid grid-cols-3 gap-4 text-xl">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, ".", 0].map((num) => (
-            <button
+            <Button
               key={num}
               type="button"
               onClick={() => handlePinInput(num)}
-              className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-black"
+              className="w-16 h-16 bg-gray-100 text-black rounded-full flex items-center justify-center text-xl hover:bg-gray-200"
             >
               {num}
-            </button>
+            </Button>
           ))}
-          <button
+          <Button
             type="button"
             onClick={() => handlePinInput("clear")}
-            className="w-16 h-16 bg-gray-800 text-white rounded-full flex items-center justify-center"
+            className="w-16 h-16 bg-gray-800 text-white rounded-full flex items-center justify-center text-xl hover:bg-gray-900"
           >
             ⌫
-          </button>
+          </Button>
         </div>
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          className="mt-6 w-full bg-orange-500 text-white py-2 rounded-lg"
-        >
-          Login
-        </button>
       </form>
     </div>
   );

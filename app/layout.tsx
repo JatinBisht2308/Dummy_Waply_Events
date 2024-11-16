@@ -1,6 +1,8 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Manrope } from "next/font/google";
+import { NextUIProvider } from "@nextui-org/react"; // Import NextUIProvider
 import "./globals.css";
 
 // Import local fonts
@@ -37,7 +39,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${manrope.className} antialiased`}
       >
-        {children}
+        {/* Wrap the application with NextUIProvider */}
+        <NextUIProvider>
+          {children}
+        </NextUIProvider>
       </body>
     </html>
   );
