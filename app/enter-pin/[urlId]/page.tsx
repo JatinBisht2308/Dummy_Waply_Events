@@ -1,26 +1,30 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@nextui-org/react";
-import axios from "axios"; // Import Axios
+import axios from "axios";
 import logo from "../../../public/assets/logo-waply.png";
 
-interface PinPageProps {
-  params: Promise<{ urlId: string }>;
-}
-
-const PinPage: React.FC<PinPageProps> = ({ params: paramsPromise }) => {
+const PinPage: React.FC = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const params = useParams();
+
   const [pin, setPin] = useState<string[]>(["", "", "", ""]);
   const [urlId, setUrlId] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState<string>("User");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
 
   useEffect(() => {
-    paramsPromise.then((resolvedParams) => {
-      setUrlId(resolvedParams.urlId);
-    });
-  }, [paramsPromise]);
+    const id = params.urlId as string | null;
+    const name = searchParams.get("profileName") as string | null;
+
+    setUrlId(id || null);
+    setProfileName(name || "User");
+  }, [params, searchParams]);
 
   const handlePinInput = (value: string | number) => {
     const newPin = [...pin];
@@ -38,9 +42,13 @@ const PinPage: React.FC<PinPageProps> = ({ params: paramsPromise }) => {
         newPin[lastFilledIndex] = "";
       }
     }
-    setPin(newPin);
 
-    if (newPin.join("").length === 4) {
+    setPin(newPin);
+    setErrorMessage(null); // Clear any previous error message
+
+    // Check if the PIN is fully entered
+    if (newPin.every((digit) => digit !== "")) {
+      setIsVerifying(true); // Start loading animation
       verifyPin(newPin.join(""));
     }
   };
@@ -51,18 +59,24 @@ const PinPage: React.FC<PinPageProps> = ({ params: paramsPromise }) => {
       const res = await axios.post(
         "http://dev.waply.co/api/v1/auth/login",
         { urlId, pin: pinCode },
-        { withCredentials: true } // Send cookies with the request
       );
 
       if (res.status === 200) {
-        router.push(`/events/${urlId}`); // Redirect to events page with urlId
+        console.log("Login successful");
+        router.push(`/events/${urlId}`);
       } else {
-        console.error("Login failed");
-        setPin(["", "", "", ""]); // Clear the PIN if verification fails
+        throw new Error("Incorrect PIN"); // Trigger the catch block for incorrect PIN
       }
     } catch (error) {
-      console.error("Error verifying PIN:", error);
-      setPin(["", "", "", ""]);
+      if (axios.isAxiosError(error) && error.response?.data?.message === "Incorrect PIN.") {
+        setErrorMessage("Incorrect PIN. Please try again.");
+      } else {
+        console.error("Error verifying PIN:", error);
+        setErrorMessage("An error occurred. Please try again.");
+      }
+      setPin(["", "", "", ""]); // Clear the PIN input if verification fails
+    } finally {
+      setIsVerifying(false); // Stop loading animation
     }
   };
 
@@ -80,7 +94,7 @@ const PinPage: React.FC<PinPageProps> = ({ params: paramsPromise }) => {
           className="mx-auto mb-4"
         />
 
-        <h2 className="text-lg font-semibold">Hi, Rwan Adams</h2>
+        <h2 className="text-lg font-semibold">Hi, {profileName}</h2>
         <p className="text-orange-500 mt-2 mb-6">Verify 4-digit security PIN</p>
 
         <div className="flex justify-center mb-4">
@@ -89,10 +103,18 @@ const PinPage: React.FC<PinPageProps> = ({ params: paramsPromise }) => {
               key={index}
               className="w-10 h-10 mx-1 border border-gray-400 rounded text-lg flex items-center justify-center"
             >
-              {digit}
+              {isVerifying ? (
+                <span className="loading-dot"></span> // Show loading animation
+              ) : (
+                digit // Show digit if not verifying
+              )}
             </div>
           ))}
         </div>
+
+        {errorMessage && (
+          <p className="text-red-500 mb-4">{errorMessage}</p>
+        )}
 
         <p className="text-orange-500 mb-8 text-sm">Powered By Waply</p>
 
@@ -116,6 +138,25 @@ const PinPage: React.FC<PinPageProps> = ({ params: paramsPromise }) => {
           </Button>
         </div>
       </form>
+      <style jsx>{`
+        .loading-dot {
+          display: inline-block;
+          width: 8px;
+          height: 8px;
+          background-color: #ff9800;
+          border-radius: 50%;
+          animation: loading 0.6s infinite alternate;
+        }
+
+        @keyframes loading {
+          from {
+            transform: scale(1);
+          }
+          to {
+            transform: scale(1.5);
+          }
+        }
+      `}</style>
     </div>
   );
 };

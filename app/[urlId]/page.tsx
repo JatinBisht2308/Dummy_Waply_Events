@@ -1,9 +1,15 @@
-'use client';
+"use client";
 import { useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 
 interface PinStatusResponse {
   isPinSet: boolean;
+  user: {
+    profileName?: string;
+    phoneNumber?: string;
+    role?: string;
+    timezone?: string;
+  };
 }
 
 export default function UserPage() {
@@ -28,18 +34,27 @@ export default function UserPage() {
         );
 
         if (!response.ok) {
-          console.error("Failed to fetch PIN status. Redirecting to error page.");
           router.push("/error");
           return;
         }
 
         const data: PinStatusResponse = await response.json();
-        console.log("Fetched PIN status:", data);
+        const { isPinSet, user } = data;
 
-        if (data.isPinSet) {
-          router.push(`/enter-pin/${urlId}`);
+        // Construct query parameters with user data
+        const queryParams = new URLSearchParams({
+          profileName: user.profileName || "",
+          phoneNumber: user.phoneNumber || "",
+          role: user.role || "",
+          timezone: user.timezone || "",
+        }).toString();
+
+        if (isPinSet) {
+          // Redirect to the PIN entry page with user data as query parameters
+          router.push(`/enter-pin/${urlId}?${queryParams}`);
         } else {
-          router.push(`/set-pin/${urlId}`);
+          // Redirect to the PIN setup page with user data as query parameters
+          router.push(`/set-pin/${urlId}?${queryParams}`);
         }
       } catch (error) {
         console.error("Error fetching PIN status:", error);
