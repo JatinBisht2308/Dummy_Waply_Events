@@ -1,8 +1,8 @@
-// pages/set-pin.tsx
-"use client";
+'use client';
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
+import axios from "axios";
 import Image from "next/image";
 import logo from "../../../public/assets/logo-waply.png"; // Replace with your logo path
 
@@ -12,8 +12,8 @@ const SetPinPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const userId = searchParams.get("userId");
+  const params = useParams<{ urlId: string }>();
+  const urlId = params.urlId;
 
   useEffect(() => {
     // Detect keyboard visibility based on viewport height change
@@ -61,20 +61,22 @@ const SetPinPage: React.FC = () => {
       setErrorMessage("PINs do not match");
     } else {
       setErrorMessage("");
-      
-      if (userId) {
-        try {
-          const res = await fetch(`/api/v1/auth/set-pin/${userId}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ pin }),
-          });
 
-          if (res.ok) {
+      if (urlId) {
+        try {
+          const res = await axios.post(
+            `http://dev.waply.co/api/v1/auth/set-pin/${urlId}`,
+            { pin },
+            {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          if (res.status === 200) {
             // Handle successful PIN setup, e.g., redirect to login or dashboard
-            router.push("/login");
+            router.push(`/${urlId}`);
           } else {
             setErrorMessage("Failed to set PIN. Please try again.");
           }
@@ -83,7 +85,7 @@ const SetPinPage: React.FC = () => {
           console.error(error);
         }
       } else {
-        setErrorMessage("User ID is missing.");
+        setErrorMessage("URL ID is missing.");
       }
     }
   };

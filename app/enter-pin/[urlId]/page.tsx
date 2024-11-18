@@ -1,29 +1,27 @@
-// pages/pin.tsx
 "use client";
 
-import React, { useState, useEffect, FormEvent } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Button } from "@nextui-org/react"; // Import Next UI Button
-import logo from "../../../public/assets/logo-waply.png"; // Replace with your logo path
+import { Button } from "@nextui-org/react";
+import axios from "axios"; // Import Axios
+import logo from "../../../public/assets/logo-waply.png";
 
 interface PinPageProps {
-  params: Promise<{ userId: string }>;
+  params: Promise<{ urlId: string }>;
 }
 
 const PinPage: React.FC<PinPageProps> = ({ params: paramsPromise }) => {
   const router = useRouter();
   const [pin, setPin] = useState<string[]>(["", "", "", ""]);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [urlId, setUrlId] = useState<string | null>(null);
 
-  // Resolve the params Promise and set the userId
   useEffect(() => {
     paramsPromise.then((resolvedParams) => {
-      setUserId(resolvedParams.userId);
+      setUrlId(resolvedParams.urlId);
     });
   }, [paramsPromise]);
 
-  // Handle PIN input
   const handlePinInput = (value: string | number) => {
     const newPin = [...pin];
     const index = newPin.findIndex((digit) => digit === "");
@@ -41,40 +39,39 @@ const PinPage: React.FC<PinPageProps> = ({ params: paramsPromise }) => {
       }
     }
     setPin(newPin);
+
+    if (newPin.join("").length === 4) {
+      verifyPin(newPin.join(""));
+    }
   };
 
-  // Handle form submission
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!userId) return; // Ensure userId is set before proceeding
-    const pinCode = pin.join(""); // Convert array to string for submission
+  const verifyPin = async (pinCode: string) => {
+    if (!urlId) return;
+    try {
+      const res = await axios.post(
+        "http://dev.waply.co/api/v1/auth/login",
+        { urlId, pin: pinCode },
+        { withCredentials: true } // Send cookies with the request
+      );
 
-    // Send login request to the backend
-    const res = await fetch("/api/v1/auth/login", {
-      method: "POST",
-      credentials: "include", // Include cookies
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ userId, pin: pinCode }),
-    });
-
-    if (res.ok) {
-      // Redirect to the dashboard or another page on successful login
-      router.push("/dashboard");
-    } else {
-      // Handle error, e.g., display error message
-      console.error("Login failed");
+      if (res.status === 200) {
+        router.push(`/events/${urlId}`); // Redirect to events page with urlId
+      } else {
+        console.error("Login failed");
+        setPin(["", "", "", ""]); // Clear the PIN if verification fails
+      }
+    } catch (error) {
+      console.error("Error verifying PIN:", error);
+      setPin(["", "", "", ""]);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <form
-        onSubmit={handleSubmit}
+        onSubmit={(e) => e.preventDefault()}
         className="flex flex-col items-center justify-center bg-white p-8 rounded-lg shadow-lg text-center max-w-sm w-full h-screen md:h-auto md:w-auto md:max-w-sm"
       >
-        {/* Logo */}
         <Image
           src={logo}
           alt="Logo"
@@ -83,11 +80,9 @@ const PinPage: React.FC<PinPageProps> = ({ params: paramsPromise }) => {
           className="mx-auto mb-4"
         />
 
-        {/* Greeting */}
         <h2 className="text-lg font-semibold">Hi, Rwan Adams</h2>
         <p className="text-orange-500 mt-2 mb-6">Verify 4-digit security PIN</p>
 
-        {/* PIN Input Display */}
         <div className="flex justify-center mb-4">
           {pin.map((digit, index) => (
             <div
@@ -101,7 +96,6 @@ const PinPage: React.FC<PinPageProps> = ({ params: paramsPromise }) => {
 
         <p className="text-orange-500 mb-8 text-sm">Powered By Waply</p>
 
-        {/* Numeric Keypad */}
         <div className="grid grid-cols-3 gap-4 text-xl">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, ".", 0].map((num) => (
             <Button
